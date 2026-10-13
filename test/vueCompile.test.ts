@@ -49,13 +49,13 @@ const BREAKING_CASES: Record<string, string> = {
   'CDATA inline': 'Use <![CDATA[ x ]]> here.',
   'CDATA block': '<![CDATA[\nx\n]]>',
   'unclosed raw-text element': '<script>\nconst a = 1',
+  'void end tag in upper case': 'Line </BR> break.',
 };
 
 /** Valid input the plugin must leave exactly as plain markdown-it renders it. */
 const UNCHANGED_CASES: Record<string, string> = {
   'balanced inline HTML': 'Press <kbd>Ctrl</kbd> and <em>go</em>.',
   'void elements': 'Line<br>break<br/>and <img src="a.png"> <hr/>',
-  'void end tag': 'Line </br> break.',
   'self-closing component': 'Status <Badge text="beta" />.',
   'paired component': '<CodePen id="x"></CodePen>',
   'component wrapped around Markdown': '<Tabs>\n\nSome **bold** text.\n\n</Tabs>',

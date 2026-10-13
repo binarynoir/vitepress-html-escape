@@ -157,8 +157,22 @@ describe('markdownHtmlEscape', () => {
   });
 
   describe('HTML edge cases', () => {
-    it('keeps void end tags and self-closed void elements', () => {
-      expect(render('a</br>b<br/>c<hr/>')).toBe('<p>a</br>b<br/>c<hr/></p>\n');
+    it('keeps self-closed void elements', () => {
+      expect(render('a<br/>b<hr/>')).toBe('<p>a<br/>b<hr/></p>\n');
+    });
+
+    it('writes </br> as <br>, in any case, as browsers read it', () => {
+      expect(render('a</br>b</BR>c')).toBe('<p>a<br>b<br>c</p>\n');
+      expect(render('<div>\na</br>b\n</div>')).toBe('<div>\na<br>b\n</div>');
+    });
+
+    it('drops other void end tags, as browsers ignore them', () => {
+      expect(render('a</img>b</HR>c')).toBe('<p>abc</p>\n');
+      expect(render('<div>\na</IMG>b\n</div>')).toBe('<div>\nab\n</div>');
+    });
+
+    it('leaves void end tags alone when tag escaping is off', () => {
+      expect(render('a</br>b', { tags: false })).toBe('<p>a</br>b</p>\n');
     });
 
     it('keeps a tag that spans lines inside a paragraph', () => {
@@ -204,8 +218,28 @@ describe('markdownHtmlEscape', () => {
       expect(render('![alt {{ c }}](/i.png)')).toBe('<p><img src="/i.png" alt="alt {{ c }}"></p>\n');
     });
 
-    it('does not touch braces in code or raw HTML', () => {
-      expect(render('`{{ x }}`\n\n<div>{{ y }}</div>\n')).toBe('<p><code>{{ x }}</code></p>\n<div>{{ y }}</div>\n');
+    it('escapes {{ }} in inline code and indented code blocks, which VitePress leaves to Vue', () => {
+      expect(render('`{{ x }}`\n\n    {{ y }}\n')).toBe(
+        '<p><code>&#123;&#123; x }}</code></p>\n<pre><code>&#123;&#123; y }}\n</code></pre>\n',
+      );
+    });
+
+    it('leaves attributes on inline code alone', () => {
+      const md = new MarkdownIt({ html: true }).use(markdownHtmlEscape);
+      md.core.ruler.push('add_attribute', (state) => {
+        state.tokens[1].children![0].attrSet('data-x', '{a}');
+      });
+      expect(md.render('`{b}`')).toBe('<p><code data-x="{a}">&#123;b}</code></p>\n');
+    });
+
+    it('leaves braces in fenced code and raw HTML alone', () => {
+      expect(render('```\n{{ x }}\n```\n\n<div>{{ y }}</div>\n')).toBe(
+        '<pre><code>{{ x }}\n</code></pre>\n<div>{{ y }}</div>\n',
+      );
+    });
+
+    it('leaves code alone when interpolation escaping is off', () => {
+      expect(render('`{{ x }}`', { interpolation: false })).toBe('<p><code>{{ x }}</code></p>\n');
     });
   });
 

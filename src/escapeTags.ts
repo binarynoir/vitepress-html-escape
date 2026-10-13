@@ -1,5 +1,14 @@
 import type { StateCore, Token } from 'markdown-it';
-import { escapeAtOffsets, markUnbalanced, parseTag, scanTags, type TagOccurrence } from './balanceTags.js';
+import {
+  applyEdits,
+  escapeEdit,
+  markUnbalanced,
+  parseTag,
+  scanTags,
+  voidEndTagReplacement,
+  type Edit,
+  type TagOccurrence,
+} from './balanceTags.js';
 
 interface TokenTag extends TagOccurrence {
   token: Token;
@@ -14,7 +23,8 @@ interface TokenTag extends TagOccurrence {
  * inside one paragraph, heading or table cell.
  *
  * Processing instructions, CDATA sections and unclosed comments are escaped
- * the same way, since Vue rejects them too (see `markUnbalanced`).
+ * the same way, since Vue rejects them too (see `markUnbalanced`). Void end
+ * tags are rewritten the way browsers read them (see `voidEndTagReplacement`).
  */
 export function escapeUnbalancedTags(state: StateCore): void {
   escapeBlockTags(state);
@@ -51,22 +61,32 @@ function escapeBlockTags(state: StateCore): void {
     }
   }
 
+  const editsByToken = new Map<Token, Edit[]>();
   const escapedOffsets = new Map<Token, number[]>();
   for (const scope of scopes) {
     markUnbalanced(scope);
-    for (const tag of scope.filter((scopeTag) => scopeTag.isEscaped)) {
+    for (const tag of scope) {
+      const replacement = voidEndTagReplacement(tag);
+      if (!tag.isEscaped && replacement === null) continue;
+      const edits = editsByToken.get(tag.token) ?? [];
+      editsByToken.set(tag.token, edits);
+      if (replacement !== null) {
+        edits.push({ offset: tag.offset, length: tag.length, text: replacement });
+        continue;
+      }
+      edits.push(escapeEdit(tag));
       const offsets = escapedOffsets.get(tag.token) ?? [];
       offsets.push(tag.offset);
       escapedOffsets.set(tag.token, offsets);
     }
   }
-  if (escapedOffsets.size === 0) return;
+  if (editsByToken.size === 0) return;
 
   state.tokens = state.tokens.flatMap((token) => {
-    const offsets = escapedOffsets.get(token);
-    if (!offsets) return [token];
-    const content = escapeAtOffsets(token.content, offsets);
-    if (!offsets.includes(token.content.search(/\S/))) {
+    const edits = editsByToken.get(token);
+    if (!edits) return [token];
+    const content = applyEdits(token.content, edits);
+    if (!escapedOffsets.get(token)?.includes(token.content.search(/\S/))) {
       token.content = content;
       return [token];
     }
@@ -110,6 +130,10 @@ function escapeInlineTags(children: Token[]): void {
     if (tag) tags.push({ ...tag, token });
   }
   markUnbalanced(tags);
-  // The text renderer escapes `<` and `>` itself.
-  for (const tag of tags.filter((inlineTag) => inlineTag.isEscaped)) tag.token.type = 'text';
+  for (const tag of tags) {
+    const replacement = voidEndTagReplacement(tag);
+    if (replacement !== null) tag.token.content = replacement;
+    // The text renderer escapes `<` and `>` itself.
+    else if (tag.isEscaped) tag.token.type = 'text';
+  }
 }

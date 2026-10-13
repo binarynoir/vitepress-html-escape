@@ -17,6 +17,8 @@ export interface TagOccurrence {
   name: string;
   /** Index of the construct's `<` in the scanned string. */
   offset: number;
+  /** Length of the construct in the scanned string. */
+  length: number;
   isClosing: boolean;
   isSelfClosing: boolean;
   /** Set by `markUnbalanced` when the construct must be escaped. */
@@ -44,20 +46,21 @@ const SINGLE_TAG_PATTERN = new RegExp(`^${TAG}$`);
 const SINGLE_XML_ONLY_PATTERN = new RegExp(`^(?:${PROCESSING_INSTRUCTION}|${CDATA})$`);
 
 function toTagOccurrence(match: RegExpExecArray, offset: number): TagOccurrence {
-  const [, closingSlash, name, selfClosingSlash] = match;
+  const [text, closingSlash, name, selfClosingSlash] = match;
   const isClosing = closingSlash === '/';
   return {
     kind: 'tag',
     name: name.toLowerCase(),
     offset,
+    length: text.length,
     isClosing,
     isSelfClosing: !isClosing && selfClosingSlash === '/',
     isEscaped: false,
   };
 }
 
-function toOtherOccurrence(kind: OccurrenceKind, offset: number): TagOccurrence {
-  return { kind, name: '', offset, isClosing: false, isSelfClosing: false, isEscaped: false };
+function toOtherOccurrence(kind: OccurrenceKind, offset: number, length: number): TagOccurrence {
+  return { kind, name: '', offset, length, isClosing: false, isSelfClosing: false, isEscaped: false };
 }
 
 /**
@@ -67,7 +70,7 @@ function toOtherOccurrence(kind: OccurrenceKind, offset: number): TagOccurrence 
 export function parseTag(html: string): TagOccurrence | null {
   const match = SINGLE_TAG_PATTERN.exec(html);
   if (match) return toTagOccurrence(match, 0);
-  return SINGLE_XML_ONLY_PATTERN.test(html) ? toOtherOccurrence('xmlOnly', 0) : null;
+  return SINGLE_XML_ONLY_PATTERN.test(html) ? toOtherOccurrence('xmlOnly', 0, html.length) : null;
 }
 
 /**
@@ -84,9 +87,9 @@ export function scanTags(html: string): TagOccurrence[] {
     if (match[2] !== undefined) {
       tags.push(toTagOccurrence(match, match.index));
     } else if (text.startsWith('<!--')) {
-      if (!text.endsWith('-->')) tags.push(toOtherOccurrence('unclosedComment', match.index));
+      if (!text.endsWith('-->')) tags.push(toOtherOccurrence('unclosedComment', match.index, text.length));
     } else if (text.startsWith('<?') || text.startsWith('<![')) {
-      tags.push(toOtherOccurrence('xmlOnly', match.index));
+      tags.push(toOtherOccurrence('xmlOnly', match.index, text.length));
     }
   }
   return tags;
@@ -97,7 +100,8 @@ export function scanTags(html: string): TagOccurrence[] {
  * marks every tag without a partner as escaped: a start tag that is never
  * closed, an end tag with nothing open to close, and any start tags left open
  * inside a pair (`<b><T></b>` escapes `<T>`). Void and self-closing tags need
- * no partner, and void end tags (`</br>`) are left alone, as Vue tolerates them. Matching ignores case.
+ * no partner. Void end tags (`</br>`) are never escaped either: they are
+ * rewritten instead (see `voidEndTagReplacement`). Matching ignores case.
  *
  * Unclosed comments are always escaped; processing instructions and CDATA
  * are escaped unless an `<svg>` or `<math>` element is open around them.
@@ -136,7 +140,6 @@ export function markUnbalanced(tags: readonly TagOccurrence[]): void {
       openTags.push(tag);
       continue;
     }
-    // Vue reads `</br>` as `<br>` and ignores other void end tags.
     if (VOID_TAG_NAMES.has(tag.name)) continue;
     const openIndex = openIndexesByName.get(tag.name)?.at(-1);
     if (openIndex === undefined) {
@@ -149,14 +152,36 @@ export function markUnbalanced(tags: readonly TagOccurrence[]): void {
   for (const unclosed of openTags) unclosed.isEscaped = true;
 }
 
-/** Replaces the `<` at each offset with `&lt;`, so those tags read as text. */
-export function escapeAtOffsets(html: string, offsets: readonly number[]): string {
+/**
+ * What a void end tag should be written as, or `null` for any other
+ * construct. Browsers read `</br>` as `<br>` and ignore other void end tags
+ * (`</img>`), as the HTML spec says. Vue doesn't: it drops `</br>` along with
+ * the rest, and fails the compile on one in upper case (`</BR>`). Writing
+ * them the way a browser reads them keeps the line break and the build.
+ */
+export function voidEndTagReplacement(tag: TagOccurrence): string | null {
+  if (tag.kind !== 'tag' || !tag.isClosing || !VOID_TAG_NAMES.has(tag.name)) return null;
+  return tag.name === 'br' ? '<br>' : '';
+}
+
+/** One replacement in a string: `length` characters at `offset` become `text`. */
+export interface Edit {
+  offset: number;
+  length: number;
+  text: string;
+}
+
+/** Applies non-overlapping edits, given in any order, to `html`. */
+export function applyEdits(html: string, edits: readonly Edit[]): string {
   const parts: string[] = [];
   let start = 0;
-  for (const offset of [...offsets].sort((a, b) => a - b)) {
-    parts.push(html.slice(start, offset), '&lt;');
-    start = offset + 1;
+  for (const edit of [...edits].sort((a, b) => a.offset - b.offset)) {
+    parts.push(html.slice(start, edit.offset), edit.text);
+    start = edit.offset + edit.length;
   }
   parts.push(html.slice(start));
   return parts.join('');
 }
+
+/** The edit that escapes a construct's `<` as `&lt;`, so it reads as text. */
+export const escapeEdit = (tag: TagOccurrence): Edit => ({ offset: tag.offset, length: 1, text: '&lt;' });

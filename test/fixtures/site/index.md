@@ -22,6 +22,12 @@ Our SSG builds this page.
 
 Items: {{ items.length }}
 
+Inline code `{{ items.length }}` shows as written.
+
+    indented {{ items.length }}
+
+Line one</br>line two</BR>line three, an image end tag</IMG> dropped.
+
 ::: tip
 Inside a container: Map<K, V> and Set<T>.
 :::

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { escapeAtOffsets, markUnbalanced, parseTag, scanTags } from '../src/balanceTags.js';
+import { applyEdits, markUnbalanced, parseTag, scanTags, voidEndTagReplacement } from '../src/balanceTags.js';
 
 const escapedNames = (html: string) => {
   const tags = scanTags(html);
@@ -104,8 +104,8 @@ describe('markUnbalanced', () => {
     expect(escapedNames('<div><div></div>')).toEqual(['div']);
   });
 
-  it('leaves void end tags alone, as Vue does', () => {
-    expect(escapedNames('a</br>b</img>')).toEqual([]);
+  it('never escapes void end tags', () => {
+    expect(escapedNames('a</br>b</img></BR>')).toEqual([]);
   });
 
   it('always escapes unclosed comments', () => {
@@ -130,20 +130,39 @@ describe('markUnbalanced', () => {
   });
 });
 
-describe('escapeAtOffsets', () => {
-  it('escapes only the given angle brackets', () => {
-    expect(escapeAtOffsets('<a><T></a>', [3])).toBe('<a>&lt;T></a>');
+describe('voidEndTagReplacement', () => {
+  const replacements = (html: string) => scanTags(html).map(voidEndTagReplacement);
+
+  it('writes </br> as <br>, in any case', () => {
+    expect(replacements('</br></BR></Br >')).toEqual(['<br>', '<br>', '<br>']);
   });
 
-  it('handles offsets in any order', () => {
-    expect(escapeAtOffsets('<x><y>', [3, 0])).toBe('&lt;x>&lt;y>');
+  it('drops other void end tags, as browsers ignore them', () => {
+    expect(replacements('</img></HR>')).toEqual(['', '']);
   });
 
-  it('runs in linear time with many offsets', () => {
+  it('leaves every other construct alone', () => {
+    expect(replacements('<br></div><div><?x ?>')).toEqual([null, null, null, null]);
+  });
+});
+
+describe('applyEdits', () => {
+  const escape = (offset: number) => ({ offset, length: 1, text: '&lt;' });
+
+  it('replaces only the given ranges', () => {
+    expect(applyEdits('<a><T></a>', [escape(3)])).toBe('<a>&lt;T></a>');
+    expect(applyEdits('a</br>b', [{ offset: 1, length: 5, text: '<br>' }])).toBe('a<br>b');
+  });
+
+  it('handles edits in any order', () => {
+    expect(applyEdits('<x><y>', [escape(3), escape(0)])).toBe('&lt;x>&lt;y>');
+  });
+
+  it('runs in linear time with many edits', () => {
     const html = '<T>'.repeat(50_000);
-    const offsets = Array.from({ length: 50_000 }, (_, index) => index * 3);
+    const edits = Array.from({ length: 50_000 }, (_, index) => escape(index * 3));
     let result = '';
-    expect(timeMs(() => (result = escapeAtOffsets(html, offsets)))).toBeLessThan(500);
+    expect(timeMs(() => (result = applyEdits(html, edits)))).toBeLessThan(500);
     expect(result).toBe('&lt;T>'.repeat(50_000));
   });
 });

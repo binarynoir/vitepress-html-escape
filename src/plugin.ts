@@ -1,6 +1,6 @@
 import type { MarkdownIt, StateCore } from 'markdown-it';
 import { escapeUnbalancedTags } from './escapeTags.js';
-import { escapeInterpolation } from './interpolation.js';
+import { escapeInterpolation, escapeInterpolationInText } from './interpolation.js';
 import { resolveSettings } from './settings.js';
 import type { HtmlEscapeOptions } from './types.js';
 
@@ -18,7 +18,9 @@ import type { HtmlEscapeOptions } from './types.js';
  * Tags are escaped after parsing, as a core rule at the end of the chain, so
  * code blocks, inline code and autolinks never reach it, and HTML emitted by
  * plugins that run earlier (such as `vitepress-markdown-tags`) is checked like
- * any other. `{` is escaped as text renders.
+ * any other. `{` is escaped as text, inline code and indented code blocks
+ * render. VitePress protects fenced code itself, with `v-pre`, but leaves
+ * the other two for Vue to interpolate.
  *
  * A page can turn either part off with `htmlEscape` in its frontmatter (see
  * the README). That needs VitePress's `env.frontmatter`, so under plain
@@ -29,9 +31,15 @@ export function markdownHtmlEscape(md: MarkdownIt, options: HtmlEscapeOptions = 
     if (resolveSettings(state.env?.frontmatter, options).tags) escapeUnbalancedTags(state);
   });
 
-  const renderText = md.renderer.rules.text ?? ((tokens, index) => md.utils.escapeHtml(tokens[index].content));
-  md.renderer.rules.text = (tokens, index, renderOptions, env, renderer) => {
-    const html = renderText(tokens, index, renderOptions, env, renderer);
-    return resolveSettings(env?.frontmatter, options).interpolation ? escapeInterpolation(html) : html;
+  // markdown-it's default renderer defines all three rules wrapped below.
+  const wrap = (name: 'text' | 'code_inline' | 'code_block', escape: (html: string) => string) => {
+    const render = md.renderer.rules[name]!;
+    md.renderer.rules[name] = (tokens, index, renderOptions, env, renderer) => {
+      const html = render(tokens, index, renderOptions, env, renderer);
+      return resolveSettings(env?.frontmatter, options).interpolation ? escape(html) : html;
+    };
   };
+  wrap('text', escapeInterpolation);
+  wrap('code_inline', escapeInterpolationInText);
+  wrap('code_block', escapeInterpolationInText);
 }

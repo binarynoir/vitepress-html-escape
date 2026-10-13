@@ -71,6 +71,11 @@ write them by accident too:
   sit inside `<svg>` or `<math>`, where Vue allows them
 - a `<!--` that's never closed, which would otherwise hide the rest of the page
 
+End tags for void elements are written the way browsers read them: `</br>`
+becomes `<br>`, and the rest (`</img>`, `</hr>`) are dropped, as browsers
+ignore them. Left to Vue, `</br>` silently loses its line break and `</BR>`
+fails the build.
+
 ## Install
 
 ```sh
@@ -147,7 +152,8 @@ Tags pair up only where they'd nest in the rendered page:
   ```
 
 - Names match case-insensitively, as in Vue (`<CodePen></codepen>` is a pair).
-- Void end tags such as `</br>` are left alone; Vue reads `</br>` as `<br>`.
+- Void end tags never pair with anything: `</br>` becomes `<br>` and the
+  others are dropped (see above).
 - A start tag left open inside a pair is escaped: in `<b><T></b>`, only `<T>`.
 - Inside an HTML block, only the unbalanced tags are escaped; the rest of the
   block is left as written.
@@ -161,8 +167,10 @@ and emphasis after it still render. In a tight list the result stays tight.
 ## Interpolation
 
 `{` in Markdown text is written as `&#123;`, which looks the same on the page
-but stops Vue from reading `{{ }}` as an expression. VitePress already does this
-inside code blocks; this extends it to prose.
+but stops Vue from reading `{{ }}` as an expression. That covers prose, inline
+code (`` `{{ value }}` ``) and indented code blocks, which VitePress otherwise
+leaves for Vue to evaluate. Fenced code blocks are already protected by
+VitePress and are left as they are.
 
 Braces inside raw HTML blocks are left alone, so `<div>{{ value }}</div>` still
 interpolates. VitePress's `{#custom-id}` heading anchors and `{.class}`
@@ -220,8 +228,8 @@ over the options. Values that aren't `true` or `false` are ignored.
   attribute (`<div class="a" class="b">`) or a directive with no value
   (`<div v-if>`) is a Vue error in markup someone wrote on purpose, so it's
   left for the build to report.
-- Interpolation escaping applies to Markdown text only, not to raw HTML or to
-  attributes.
+- Interpolation escaping applies to Markdown text and code only, not to raw
+  HTML or to attributes.
 
 ## API
 

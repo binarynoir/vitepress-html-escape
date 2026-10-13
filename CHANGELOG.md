@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `{{ }}` in inline code and indented code blocks is escaped too. VitePress protects only fenced code, so Vue evaluated these, and `` `{{ value }}` `` rendered as empty code
+- end tags for void elements are written the way browsers read them: `</br>` becomes `<br>` instead of being dropped by Vue, other void end tags (`</img>`) are removed, and upper-case ones such as `</BR>` no longer fail the build with `Invalid end tag`
+
 ## [0.1.0] - 2026-10-13
 
 ### Added

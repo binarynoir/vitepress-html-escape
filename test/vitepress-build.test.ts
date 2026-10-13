@@ -51,6 +51,15 @@ describe('vitepress build', () => {
       expect(page).toContain('Items: {{ items.length }}');
     });
 
+    it('shows {{ }} in inline code and indented code blocks as written', () => {
+      expect(page).toContain('Inline code <code>{{ items.length }}</code> shows as written.');
+      expect(page).toContain('<pre><code>indented {{ items.length }}');
+    });
+
+    it('writes void end tags the way browsers read them', () => {
+      expect(page).toContain('Line one<br>line two<br>line three, an image end tag dropped.');
+    });
+
     it('escapes processing instructions and CDATA in prose', () => {
       expect(page).toContain('PHP inline: &lt;?php echo 1 ?&gt; and CDATA: &lt;![CDATA[ x ]]&gt;.');
     });
