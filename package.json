@@ -39,6 +39,11 @@
       "import": "./dist/vitepress.js",
       "require": "./dist/vitepress.cjs"
     },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js",
+      "require": "./dist/client.cjs"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -80,6 +85,7 @@
     "@vue/compiler-dom": "^3.5.0",
     "eslint": "^10.11.0",
     "eslint-config-prettier": "^10.1.8",
+    "happy-dom": "^21.0.1",
     "markdown-it": "^15.0.2",
     "markdown-it-glossary": "^0.4.0",
     "prettier": "^3.9.8",

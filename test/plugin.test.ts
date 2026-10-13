@@ -255,6 +255,53 @@ describe('markdownHtmlEscape', () => {
     });
   });
 
+  describe('rules', () => {
+    const source = 'A Array<T>, a </div>, <?php x ?>, a</br>b, {{ p }} and `{{ c }}`.';
+
+    it('handles every kind by default', () => {
+      expect(render(source)).toBe(
+        '<p>A Array&lt;T&gt;, a &lt;/div&gt;, &lt;?php x ?&gt;, a<br>b, &#123;&#123; p }} and <code>&#123;&#123; c }}</code>.</p>\n',
+      );
+    });
+
+    it('leaves each kind as written when its rule is off', () => {
+      expect(render(source, { tags: { unclosedTags: false } })).toContain('A Array<T>, a &lt;/div&gt;');
+      expect(render(source, { tags: { strayEndTags: false } })).toContain('A Array&lt;T&gt;, a </div>,');
+      expect(render(source, { tags: { xmlSyntax: false } })).toContain(', <?php x ?>,');
+      expect(render(source, { tags: { voidEndTags: false } })).toContain(', a</br>b,');
+      expect(render(source, { interpolation: { prose: false } })).toContain(
+        '{{ p }} and <code>&#123;&#123; c }}</code>',
+      );
+      expect(render(source, { interpolation: { code: false } })).toContain(
+        '&#123;&#123; p }} and <code>{{ c }}</code>',
+      );
+    });
+
+    it('leaves an unclosed comment as written when its rule is off', () => {
+      expect(render('Text.\n\n<!-- forgot', { tags: { unclosedComments: false } })).toBe('<p>Text.</p>\n<!-- forgot');
+      expect(render('Text.\n\n<!-- forgot')).toBe('<p>Text.</p>\n<p>&lt;!-- forgot</p>\n');
+    });
+
+    it('applies rules to HTML blocks, and keeps a placeholder block raw when its rule is off', () => {
+      expect(render('<div>\nArray<T> </span>\n</div>', { tags: { strayEndTags: false } })).toBe(
+        '<div>\nArray&lt;T> </span>\n</div>',
+      );
+      expect(render('<your-name>\nis **you**.', { tags: { unclosedTags: false } })).toBe('<your-name>\nis **you**.');
+    });
+
+    it('lets a page turn a rule back on', () => {
+      const env = { frontmatter: { htmlEscape: { tags: { voidEndTags: true } } } };
+      expect(render('a</br>b', { tags: { voidEndTags: false } }, env)).toBe('<p>a<br>b</p>\n');
+    });
+
+    it('marks hints only for rules that are on', () => {
+      const html = render(source, { hints: true, tags: { unclosedTags: false }, interpolation: { prose: false } });
+      expect(html).not.toContain('>&lt;T&gt;</span>');
+      expect(html).not.toContain('{{ p }}</span>');
+      expect(html).toContain('>&lt;/div&gt;</span>');
+    });
+  });
+
   it('can turn tag escaping off in the options', () => {
     expect(render('Array<T>', { tags: false })).toBe('<p>Array<T></p>\n');
   });

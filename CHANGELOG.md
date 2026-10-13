@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-13
+
+### Added
+
+- `hints` option, and `htmlEscape: { hints: true }` per page, which marks everything the plugin escaped or corrected so authors can fix it: unbalanced tags, unclosed comments, stray `<?…?>` and CDATA (errors), and void end tags and `{{ }}` in prose (warnings). Each hint carries a message saying what is wrong and how to fix it, with its source line and, under VitePress, its file
+- rules for each kind of problem, all on by default: `tags` takes `unclosedTags`, `strayEndTags`, `unclosedComments`, `xmlSyntax` and `voidEndTags`, and `interpolation` takes `prose` and `code`. Turn single rules off in the options (`tags: { voidEndTags: false }`) or per page in `htmlEscape` frontmatter, where an object changes only the rules it names. `true` and `false` still switch a whole group
+- `enableHtmlEscapeHints()` from `@binarynoir/vitepress-html-escape/client`, which underlines hints with a wavy line, gives them a `not-allowed` cursor, and shows the message in a popover on hover, click or tap
+
 ## [0.2.0] - 2026-10-13
 
 ### Fixed

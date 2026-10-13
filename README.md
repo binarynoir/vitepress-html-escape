@@ -186,9 +186,134 @@ htmlEscape:
 ---
 ```
 
-## Turning it off for a page
+## Hints: showing authors what to fix
 
-The `htmlEscape` frontmatter key overrides the plugin options for one page:
+Escaping keeps the build green, but the mistake is still on the page. Turn on
+`hints` and every spot the plugin escaped or corrected gets a wavy underline
+and a `not-allowed` cursor. Hover it (or click or tap it) and a popover says
+what is wrong, how to fix it, and where it is in the source:
+
+> guide/api.md, line 12
+>
+> `<T>` is never closed, so it is shown as text. If it is code or a
+> placeholder, put it in backticks so it shows as code. If it is an element,
+> add `</T>`.
+
+Two levels are marked:
+
+- **Errors** (red): unbalanced tags, unclosed comments, and stray `<?…?>` and
+  CDATA. Each would have failed the build or hidden part of the page.
+- **Warnings** (amber): void end tags the plugin rewrote (`</br>`) or removed
+  (`</img>`), and `{{ }}` in prose. The page renders, but the source may
+  still need a look. Braces in code are never marked.
+
+Hints have two halves. The `hints` option marks the spots up while the page
+renders:
+
+```ts
+md.use(markdownHtmlEscape, { hints: true });
+// or
+withHtmlEscape(defineConfig({ ... }), { hints: true });
+```
+
+and `enableHtmlEscapeHints()` adds the underline and popovers in the browser.
+In VitePress, call it from your theme:
+
+```ts
+// .vitepress/theme/index.ts
+import DefaultTheme from 'vitepress/theme';
+import { enableHtmlEscapeHints } from '@binarynoir/vitepress-html-escape/client';
+
+export default {
+  extends: DefaultTheme,
+  enhanceApp() {
+    enableHtmlEscapeHints();
+  },
+};
+```
+
+To show hints only while you write, turn them on outside production builds:
+
+```ts
+withHtmlEscape(config, { hints: process.env.NODE_ENV !== 'production' });
+```
+
+or turn them on for a single page with `htmlEscape: { hints: true }` in its
+frontmatter.
+
+| `enableHtmlEscapeHints` option | Default | Description                                                                  |
+| ------------------------------ | ------- | ---------------------------------------------------------------------------- |
+| `hover`                        | `true`  | Show the popover on mouse hover. `false` for click and tap only.             |
+| `hoverDelay`                   | `300`   | Milliseconds the mouse rests on a hint before the popover shows.             |
+| `injectStyles`                 | `true`  | Inject the default styles. `false` lets you style `.html-escape-hint` yours. |
+
+The default look follows VitePress theme colors. Override it with the
+`--html-escape-hint-error`, `--html-escape-hint-warning`,
+`--html-escape-hint-popover-bg`, `--html-escape-hint-popover-fg` and
+`--html-escape-hint-popover-border` CSS variables. Each hint is a
+`<span class="html-escape-hint html-escape-hint--error">` (or `--warning`)
+whose `data-html-escape-hint` attribute holds the message, with
+`data-html-escape-hint-line` and, under VitePress, `data-html-escape-hint-file`
+for its location. `enableHtmlEscapeHints()` returns a function that removes
+its listeners.
+
+## Choosing what it handles
+
+Every kind of problem has its own rule, and every rule is on by default. Turn
+off the ones you don't want, for the whole site in the options or for one page
+in its frontmatter. A rule that is off leaves its construct exactly as written,
+so Vue sees it and may fail the build on it, as it would without the plugin.
+
+| Group           | Rule               | What it handles                                                           |
+| --------------- | ------------------ | ------------------------------------------------------------------------- |
+| `tags`          | `unclosedTags`     | Start tags never closed, shown as text: `Array<string>`, `<your-name>`.   |
+| `tags`          | `strayEndTags`     | End tags with nothing to close, shown as text: a stray `</div>`.          |
+| `tags`          | `unclosedComments` | A `<!--` with no `-->`, shown as text instead of hiding the page.         |
+| `tags`          | `xmlSyntax`        | `<?…?>` and CDATA outside `<svg>` and `<math>`, shown as text.            |
+| `tags`          | `voidEndTags`      | `</br>` written as `<br>`, and other void end tags (`</img>`) removed.    |
+| `interpolation` | `prose`            | `{{ }}` in Markdown text: paragraphs, headings, lists, tables, link text. |
+| `interpolation` | `code`             | `{{ }}` in inline code and indented code blocks.                          |
+
+Set a group to `true` or `false` to switch all of its rules at once, or to an
+object to switch rules one by one. Rules an object doesn't name keep their
+current value:
+
+```ts
+md.use(markdownHtmlEscape, {
+  tags: { voidEndTags: false }, // every other tag rule stays on
+  interpolation: { code: false },
+});
+```
+
+Rules are opt-out rather than opt-in on purpose: each one prevents a broken
+build or a page that renders wrong, so new rules in later versions are on
+for you too.
+
+### Per page
+
+The `htmlEscape` frontmatter key overrides the options for one page. An object
+there changes only the rules it names, on top of the site-wide options, so a
+page can turn one rule back on without repeating the rest:
+
+```md
+---
+htmlEscape:
+  tags:
+    voidEndTags: true # back on for this page; other rules as configured
+  interpolation:
+    prose: false # this page uses {{ $frontmatter.title }} on purpose
+---
+```
+
+A boolean replaces the whole group, and `false` for the key itself turns the
+plugin off for the page:
+
+```md
+---
+htmlEscape:
+  tags: false # leave every tag as written, keep {{ }} escaping
+---
+```
 
 ```md
 ---
@@ -196,24 +321,19 @@ htmlEscape: false # turn everything off
 ---
 ```
 
-```md
----
-htmlEscape:
-  tags: false # keep {{ }} escaping, leave tags as written
----
-```
-
 ## Options
 
 `markdownHtmlEscape(md, options)` and `withHtmlEscape(config, options)` take:
 
-| Option          | Default | Description                                                              |
-| --------------- | ------- | ------------------------------------------------------------------------ |
-| `tags`          | `true`  | Escape unbalanced tags, unclosed comments, and stray `<?…?>` and CDATA.  |
-| `interpolation` | `true`  | Escape `{` in Markdown text so Vue doesn't evaluate `{{ }}` expressions. |
+| Option          | Default | Description                                                                                             |
+| --------------- | ------- | ------------------------------------------------------------------------------------------------------- |
+| `tags`          | `true`  | `true`, `false`, or an object of tag rules (see [Choosing what it handles](#choosing-what-it-handles)). |
+| `interpolation` | `true`  | `true`, `false`, or an object of interpolation rules (see above).                                       |
+| `hints`         | `false` | Mark what was escaped or corrected, for authors (see [Hints](#hints-showing-authors-what-to-fix)).      |
 
 The same keys work under `htmlEscape` in a page's frontmatter, where they win
-over the options. Values that aren't `true` or `false` are ignored.
+over the options. Values that aren't `true` or `false`, and rule names the
+plugin doesn't know, are ignored.
 
 ## Limits
 

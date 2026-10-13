@@ -101,6 +101,26 @@ describe('vitepress build', () => {
     expect(readPage('guide/disabled')).toContain('Sum: 4.');
   });
 
+  it('marks what it escaped with hints when the page turns them on', () => {
+    const page = readPage('guide/hints');
+    expect(page).toMatch(
+      /Array<span class="html-escape-hint html-escape-hint--error" data-html-escape-hint="[^"]+" data-html-escape-hint-line="8" data-html-escape-hint-file="guide\/hints\.md">&lt;string&gt;<\/span>/,
+    );
+    expect(page).toMatch(/html-escape-hint--warning"[^>]*>\{\{ items \}\}<\/span>/);
+    expect(page).toMatch(/html-escape-hint--warning"[^>]*>&lt;\/br&gt;<\/span><br>break/);
+    expect(page).toMatch(
+      /data-html-escape-hint-line="10"[^>]*>&lt;your-placeholder&gt;<\/span>\s*continues with <strong>bold<\/strong>/,
+    );
+  });
+
+  it('honors single rules set in frontmatter', () => {
+    expect(readPage('guide/rules')).toContain('Stray end tag &lt;/span&gt; escaped, code <code>2</code> evaluated.');
+  });
+
+  it('leaves pages without hints unmarked', () => {
+    expect(readPage('index')).not.toContain('html-escape-hint');
+  });
+
   it('escapes an unclosed comment and renders the rest of the page as Markdown', () => {
     const page = readPage('guide/unclosed-comment');
     expect(page).toContain('&lt;!-- a contributor forgot to close this');
