@@ -33,8 +33,9 @@ export function markdownHtmlEscape(md: MarkdownIt, options: HtmlEscapeOptions = 
   recordSource(md);
   md.core.ruler.push('html_escape', (state: StateCore) => {
     const settings = resolveSettings(state.env?.frontmatter, options);
-    if (anyRule(settings.tags)) escapeUnbalancedTags(state, settings.tags, settings.hints);
-    if (settings.interpolation.prose && settings.hints) markInterpolation(state);
+    const { hints, asCode } = settings;
+    if (anyRule(settings.tags)) escapeUnbalancedTags(state, settings.tags, hints, asCode);
+    if (settings.interpolation.prose && (hints || asCode)) markInterpolation(state, { hints, asCode });
   });
 
   // markdown-it's default renderer defines all three rules wrapped below.

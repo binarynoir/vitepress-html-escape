@@ -9,7 +9,9 @@ import {
   type Edit,
   type TagOccurrence,
 } from './balanceTags.js';
-import { escapeMessage, hintMarkup, lineAt, voidEndTagMessage } from './hints.js';
+import { blockRunEdits, wrapInlineRuns, type BlockCodeTag, type CodeConstruct } from './codeRuns.js';
+import { escapeHtml, escapeMessage, hintMarkup, lineAt, voidEndTagMessage } from './hints.js';
+import { escapeInterpolation } from './interpolation.js';
 import { lineOffset, setNestedLineOffset } from './source.js';
 import type { TagRules } from './types.js';
 
@@ -31,17 +33,39 @@ interface TokenTag extends TagOccurrence {
  *
  * Only constructs whose rule is on in `rules` are touched (see `ruleFor`).
  * With `hints`, each escaped or rewritten construct is also wrapped in a hint
- * span explaining what is wrong (see `hintMarkup`).
+ * span explaining what is wrong (see `hintMarkup`). With `asCode`, escaped
+ * tags, `<?…?>` and CDATA are shown as inline code covering the whole word
+ * they belong to (see `isShownAsCode`).
  */
-export function escapeUnbalancedTags(state: StateCore, rules: Required<TagRules>, hints = false): void {
+export function escapeUnbalancedTags(state: StateCore, rules: Required<TagRules>, hints = false, asCode = false): void {
   const handles = (tag: TagOccurrence) => {
     const rule = ruleFor(tag);
     return rule !== null && rules[rule];
   };
-  escapeBlockTags(state, handles, hints);
+  const display: Display = { hints, asCode };
+  escapeBlockTags(state, handles, display);
   for (const token of state.tokens) {
-    if (token.type === 'inline' && token.children) escapeInlineTags(state, token, handles, hints);
+    if (token.type === 'inline' && token.children) escapeInlineTags(state, token, handles, display);
   }
+}
+
+interface Display {
+  hints: boolean;
+  asCode: boolean;
+}
+
+/**
+ * Whether `asCode` shows an escaped construct as code: unbalanced tags,
+ * `<?…?>` and CDATA. An unclosed comment is prose that would have been
+ * hidden, and a void end tag is rewritten, not escaped, so neither is.
+ */
+export const isShownAsCode = (tag: TagOccurrence): boolean =>
+  tag.isEscaped && tag.kind !== 'unclosedComment' && voidEndTagReplacement(tag) === null;
+
+/** A construct's markup inside a code span: escaped text, or a hint span showing it. */
+function codeContent(source: string, tag: TagOccurrence, hints: boolean, file?: string, line?: number): string {
+  if (!hints) return escapeInterpolation(escapeHtml(source));
+  return hintMarkup(source, 'error', escapeMessage(tag, source, 'code'), { line, file });
 }
 
 /**
@@ -84,7 +108,7 @@ function editFor(
 
 const LIST_OPEN_TYPES = new Set(['bullet_list_open', 'ordered_list_open']);
 
-function escapeBlockTags(state: StateCore, handles: Handles, hints: boolean): void {
+function escapeBlockTags(state: StateCore, handles: Handles, { hints, asCode }: Display): void {
   const scopes: TokenTag[][] = [[]];
   const openScopes = [scopes[0]];
   const openContainers: Token[] = [];
@@ -114,21 +138,33 @@ function escapeBlockTags(state: StateCore, handles: Handles, hints: boolean): vo
   const offset = lineOffset(state);
   const editsByToken = new Map<Token, Edit[]>();
   const escapedOffsets = new Map<Token, number[]>();
+  const codeTagsByToken = new Map<Token, BlockCodeTag[]>();
   for (const scope of scopes) {
     markUnbalanced(scope);
     for (const tag of scope) {
       if (!handles(tag)) continue;
       const { content, map } = tag.token;
       const line = map ? lineAt(map[0] + offset, content, tag.offset) : undefined;
-      const edit = editFor(tag, content, hints, file, line);
-      const edits = editsByToken.get(tag.token) ?? [];
-      edits.push(edit);
-      editsByToken.set(tag.token, edits);
+      if (asCode && isShownAsCode(tag)) {
+        const text = content.slice(tag.offset, tag.offset + tag.length);
+        const codeTags = codeTagsByToken.get(tag.token) ?? [];
+        // Raw HTML around it is kept as written, so only `<` needs escaping without hints.
+        const render = () => (hints ? codeContent(text, tag, hints, file, line) : `&lt;${text.slice(1)}`);
+        codeTags.push({ offset: tag.offset, length: tag.length, render, isClosing: tag.isClosing });
+        codeTagsByToken.set(tag.token, codeTags);
+      } else {
+        const edits = editsByToken.get(tag.token) ?? [];
+        edits.push(editFor(tag, content, hints, file, line));
+        editsByToken.set(tag.token, edits);
+      }
       if (!tag.isEscaped) continue;
       const offsets = escapedOffsets.get(tag.token) ?? [];
       offsets.push(tag.offset);
       escapedOffsets.set(tag.token, offsets);
     }
+  }
+  for (const [token, codeTags] of codeTagsByToken) {
+    editsByToken.set(token, [...(editsByToken.get(token) ?? []), ...blockRunEdits(token.content, codeTags)]);
   }
   if (editsByToken.size === 0) return;
 
@@ -177,7 +213,7 @@ interface InlineTag extends TokenTag {
   line: number | undefined;
 }
 
-function escapeInlineTags(state: StateCore, inline: Token, handles: Handles, hints: boolean): void {
+function escapeInlineTags(state: StateCore, inline: Token, handles: Handles, { hints, asCode }: Display): void {
   const file = sourceFile(state);
   const tags: InlineTag[] = [];
   for (const { token, line } of inlineLines(inline, lineOffset(state))) {
@@ -186,8 +222,17 @@ function escapeInlineTags(state: StateCore, inline: Token, handles: Handles, hin
     if (tag) tags.push({ ...tag, token, line });
   }
   markUnbalanced(tags);
+  const codeTokens = new Map<Token, CodeConstruct>();
   for (const tag of tags) {
     if (!handles(tag)) continue;
+    if (asCode && isShownAsCode(tag)) {
+      const text = tag.token.content;
+      codeTokens.set(tag.token, {
+        render: () => codeContent(text, tag, hints, file, tag.line),
+        isClosing: tag.isClosing,
+      });
+      continue;
+    }
     if (!hints && tag.isEscaped && voidEndTagReplacement(tag) === null) {
       // The text renderer escapes `<` and `>` itself.
       tag.token.type = 'text';
@@ -195,6 +240,7 @@ function escapeInlineTags(state: StateCore, inline: Token, handles: Handles, hin
     }
     tag.token.content = editFor(tag, tag.token.content, hints, file, tag.line).text;
   }
+  if (codeTokens.size > 0) inline.children = wrapInlineRuns(state, inline.children!, codeTokens);
 }
 
 /**

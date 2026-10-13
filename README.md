@@ -12,9 +12,12 @@ compile. Real HTML and Vue components work exactly as before.
 It's built for docs sites with many contributors, where you can't count on
 everyone to remember the backticks.
 
+[Documentation and live demo](https://binarynoir.github.io/plugins/html-escape/)
+
 [![Support me on Buy Me a Coffee](https://img.shields.io/badge/Support%20me-Buy%20Me%20a%20Coffee-orange?style=for-the-badge&logo=buy-me-a-coffee)](https://buymeacoffee.com/binarynoir)
 [![Support me on Ko-fi](https://img.shields.io/badge/Support%20me-Ko--fi-blue?style=for-the-badge&logo=ko-fi)](https://ko-fi.com/binarynoir)
 [![Visit my website](https://img.shields.io/badge/Website-binarynoir.tech-8c8c8c?style=for-the-badge)](https://binarynoir.tech)
+[![More tools](https://img.shields.io/badge/More%20tools-binarynoir.github.io-111111?style=for-the-badge)](https://binarynoir.github.io)
 
 ## The problem
 
@@ -186,6 +189,57 @@ htmlEscape:
 ---
 ```
 
+## Showing escapes as code
+
+By default an escaped tag shows up as plain text. Most of the time it was
+meant as code, and the author just forgot the backticks. Turn on `asCode` and
+the plugin adds them for you: everything it escapes is shown as inline code,
+exactly as if it had been written in backticks.
+
+```ts
+md.use(markdownHtmlEscape, { asCode: true });
+```
+
+| You write                        | Shown as                           |
+| -------------------------------- | ---------------------------------- |
+| `Returns Array<string>.`         | Returns `Array<string>`.           |
+| `Run it against <host>:<port>.`  | Run it against `<host>:<port>`.    |
+| `Use (Promise<T>) or fn(Set<T>)` | Use (`Promise<T>`) or `fn(Set<T>)` |
+| `Paste <?php echo $v; ?> here.`  | Paste `<?php echo $v; ?>` here.    |
+| `Template: {{ user.name }}`      | Template: `{{ user.name }}`        |
+| `a template</div> by mistake`    | a template`</div>` by mistake      |
+
+The code span covers the whole word, not just the brackets, so `Array<string>`
+stays in one piece:
+
+- The text attached to a construct joins it (`Array` in `Array<string>`, `[]`
+  in `Array<string>[]`), and constructs written without a space between them
+  become one span (`<host>:<port>`).
+- Sentence punctuation, quotes, and brackets that wrap the word stay outside:
+  `(Array<T>).` shows `Array<T>` as code. Brackets that are part of the code,
+  as in `fn(Array<T>)`, stay inside.
+- The word before a stray end tag stays outside, since it is the content the
+  tag was meant to close.
+
+It applies to unbalanced tags, stray `<?…?>` and CDATA, and `{{ }}` in prose
+when interpolation escaping is on. Unclosed comments are shown as text (they
+are prose that would have been hidden), void end tags are still rewritten,
+and real HTML and components are left alone. With hints on as well, the wavy
+underline marks just the construct inside the code span.
+
+Turn it on or off for one page in its frontmatter:
+
+```md
+---
+htmlEscape:
+  asCode: true
+---
+```
+
+Generics that markdown-it never reads as a tag, such as `Map<string, number>`
+(a comma can't follow a tag name), are already plain text that Vue accepts.
+The plugin doesn't touch them, so they aren't shown as code.
+
 ## Hints: showing authors what to fix
 
 Escaping keeps the build green, but the mistake is still on the page. Turn on
@@ -325,11 +379,12 @@ htmlEscape: false # turn everything off
 
 `markdownHtmlEscape(md, options)` and `withHtmlEscape(config, options)` take:
 
-| Option          | Default | Description                                                                                             |
-| --------------- | ------- | ------------------------------------------------------------------------------------------------------- |
-| `tags`          | `true`  | `true`, `false`, or an object of tag rules (see [Choosing what it handles](#choosing-what-it-handles)). |
-| `interpolation` | `true`  | `true`, `false`, or an object of interpolation rules (see above).                                       |
-| `hints`         | `false` | Mark what was escaped or corrected, for authors (see [Hints](#hints-showing-authors-what-to-fix)).      |
+| Option          | Default | Description                                                                                                                 |
+| --------------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `tags`          | `true`  | `true`, `false`, or an object of tag rules (see [Choosing what it handles](#choosing-what-it-handles)).                     |
+| `interpolation` | `true`  | `true`, `false`, or an object of interpolation rules (see above).                                                           |
+| `hints`         | `false` | Mark what was escaped or corrected, for authors (see [Hints](#hints-showing-authors-what-to-fix)).                          |
+| `asCode`        | `false` | Show what was escaped as inline code, as if written in backticks (see [Showing escapes as code](#showing-escapes-as-code)). |
 
 The same keys work under `htmlEscape` in a page's frontmatter, where they win
 over the options. Values that aren't `true` or `false`, and rule names the
@@ -398,14 +453,56 @@ MIT
 
 ---
 
-## Support
+## Feedback and support
 
-If you encounter any issues or have questions, please open an issue on [GitHub](https://github.com/binarynoir/vitepress-html-escape/issues).
+Bug reports, feature requests and questions are all welcome. Please open them on this project's [GitHub issue tracker](https://github.com/binarynoir/vitepress-html-escape/issues):
+
+- **Found a bug?** [Report it](https://github.com/binarynoir/vitepress-html-escape/issues/new?labels=bug&title=Bug%3A%20). Include your version and the steps to reproduce it.
+- **Have an idea?** [Request a feature](https://github.com/binarynoir/vitepress-html-escape/issues/new?labels=enhancement&title=Feature%20request%3A%20). Tell us what you are trying to do.
+- **Something else?** [Browse open issues](https://github.com/binarynoir/vitepress-html-escape/issues) to see if it has already been raised.
+
+Pull requests are welcome too.
+
+## More from BinaryNoir
+
+<p align="center">
+  <a href="https://binarynoir.tech">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://binarynoir.github.io/logo-wide-dark.svg">
+      <img alt="BinaryNoir" src="https://binarynoir.github.io/logo-wide-light.svg" width="320">
+    </picture>
+  </a>
+</p>
+
+HTML Escape is one of a family of open-source VitePress plugins, editor extensions and command-line tools from BinaryNoir. Browse them all, with documentation and live demos, at **[binarynoir.github.io](https://binarynoir.github.io)**.
+
+**VitePress plugins**
+
+- [Auto Sidebar](https://binarynoir.github.io/plugins/auto-sidebar): sidebar built from your folders
+- [Auto Navbar](https://binarynoir.github.io/plugins/auto-navbar): navbar built from your folders
+- [Markdown Tags](https://binarynoir.github.io/plugins/markdown-tags/): inline status badges
+- [Reading Time Tag](https://binarynoir.github.io/plugins/reading-time-tag): reading-time estimates
+- [Downloads](https://binarynoir.github.io/plugins/downloads): downloadable files next to your pages
+- [Glossary Tooltips](https://binarynoir.github.io/plugins/glossary/): hover definitions from one glossary file
+
+**Vite plugins**
+
+- [Optimize Images](https://binarynoir.github.io/plugins/optimize-images): smaller images in the build output
+- [Image Fallback](https://binarynoir.github.io/plugins/image-fallback): a placeholder instead of a failed build
+
+**Editor extensions**
+
+- [Tags for Markdown for VS Code](https://binarynoir.github.io/plugins/markdown-tags/vscode): status badges in the VS Code Markdown preview
+- [Tags for Markdown for Obsidian](https://binarynoir.github.io/plugins/markdown-tags/obsidian): status badges in Obsidian
+
+**Command-line tools**
+
+- [NoirWatch](https://binarynoir.github.io/apps/noirwatch): get notified when a web page changes
+- [NoirCon](https://binarynoir.github.io/apps/noircon): get notified when a site, server or port goes down
+- [callrx](https://binarynoir.github.io/apps/callrx): amateur radio callsign lookup
+
+Website: **[binarynoir.tech](https://binarynoir.tech)** · Docs and demos: **[binarynoir.github.io](https://binarynoir.github.io)**
 
 ## Author
 
-John Smith III
-
-## Acknowledgments
-
-Thanks to all contributors and users for their support and feedback.
+John Smith III, [BinaryNoir](https://binarynoir.tech). Thanks to all contributors and users for their support and feedback.

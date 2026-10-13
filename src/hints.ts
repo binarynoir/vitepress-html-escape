@@ -17,7 +17,8 @@ export interface HintLocation {
   file?: string;
 }
 
-const escapeHtml = (text: string): string =>
+/** Escapes text for HTML content and double-quoted attribute values. */
+export const escapeHtml = (text: string): string =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 /**
@@ -38,15 +39,27 @@ export function hintMarkup(source: string, level: HintLevel, message: string, lo
 /** The tag name as written in `source`, such as `T` in `<T>` or `div` in `</div>`. */
 const writtenName = (source: string): string => /^<\/?([A-Za-z][A-Za-z0-9-]*)/.exec(source)?.[1] ?? '';
 
+/** How an escaped construct is shown: as plain text, or as inline code with `asCode`. */
+export type ShownAs = 'text' | 'code';
+
 /** Explains why a construct was escaped and how to fix it. */
-export function escapeMessage(tag: TagOccurrence, source: string): string {
+export function escapeMessage(tag: TagOccurrence, source: string, shownAs: ShownAs = 'text'): string {
   if (tag.kind === 'unclosedComment') {
     return 'This `<!--` is never closed with `-->`, so it is shown as text instead of hiding the rest of the page. Add `-->` where the comment should end.';
+  }
+  const name = writtenName(source);
+  if (shownAs === 'code') {
+    const why =
+      tag.kind === 'xmlOnly'
+        ? 'Vue only allows processing instructions (`<?…?>`) and CDATA sections inside `<svg>` or `<math>`'
+        : tag.isClosing
+          ? `\`</${name}>\` has no matching \`<${name}>\` to close`
+          : `\`<${name}>\` is never closed`;
+    return `${why}, so it is shown as code. Put it in backticks in the source so it renders as code without this option${tag.kind === 'tag' ? ', or fix the markup if it is meant as HTML' : ''}.`;
   }
   if (tag.kind === 'xmlOnly') {
     return 'Vue only allows processing instructions (`<?…?>`) and CDATA sections inside `<svg>` or `<math>`, so this is shown as text. Wrap it in backticks to show it as code.';
   }
-  const name = writtenName(source);
   if (tag.isClosing) {
     return `\`</${name}>\` has no matching \`<${name}>\` to close, so it is shown as text. Delete it, add the opening tag, or wrap it in backticks if it is meant as text.`;
   }
@@ -61,6 +74,9 @@ export function voidEndTagMessage(tag: TagOccurrence, source: string): string {
   }
   return `\`<${name}>\` never takes an end tag, so \`</${name}>\` has no effect and was removed. Delete it.`;
 }
+
+export const INTERPOLATION_CODE_MESSAGE =
+  'Vue would evaluate `{{ }}` as an expression, so it is shown as code. Put it in backticks in the source so it renders as code without this option. If the page should evaluate it, set `htmlEscape: { interpolation: false }` in its frontmatter.';
 
 export const INTERPOLATION_MESSAGE =
   'Vue would evaluate `{{ }}` as an expression, so it is shown as written. Wrap it in backticks to show it as code. If the page should evaluate it, set `htmlEscape: { interpolation: false }` in its frontmatter.';

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-13
+
+### Added
+
+- `asCode` option, and `htmlEscape: { asCode: true }` per page, which shows what the plugin escapes as inline code, as if it had been written in backticks. The code covers the whole word, so `Array<string>` and `<host>:<port>` stay in one piece, while sentence punctuation, quotes and wrapping brackets stay outside. Applies to unbalanced tags, stray `<?…?>` and CDATA, and `{{ }}` in prose; with hints on, the hint marks just the construct inside the code
+
+### Changed
+
+- README: add a Feedback and support section with links to report a bug, request a feature, or browse open issues
+- README: add a More from BinaryNoir section with the BinaryNoir logo and links to the other plugins and command-line tools on [binarynoir.github.io](https://binarynoir.github.io)
+- README: add a binarynoir.github.io badge
+- Add a link to the documentation site in README
+
 ## [0.3.0] - 2026-10-13
 
 ### Added

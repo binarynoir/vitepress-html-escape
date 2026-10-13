@@ -76,6 +76,16 @@ describe('hints', () => {
     expect(comment.message).toContain('never closed with `-->`');
   });
 
+  it('sit inside the code span with asCode, around the construct only', () => {
+    const html = md({ asCode: true }).render('Returns Array<string> and {{ x }}.');
+    expect(html).toContain('<code>Array<span class="html-escape-hint html-escape-hint--error"');
+    const [tag, braces] = hints(html);
+    expect(tag).toMatchObject({ level: 'error', text: '<string>' });
+    expect(tag.message).toContain('shown as code');
+    expect(braces).toMatchObject({ level: 'warning', text: '{{ x }}' });
+    expect(braces.message).toContain('shown as code');
+  });
+
   it('mark escaped tags inside HTML blocks and re-parsed blocks', () => {
     expect(hints(render('<div>\nArray<T>\n</div>'))[0]).toMatchObject({ text: '<T>', line: '2' });
     const html = render('<your-name>\nis **you**.');

@@ -243,6 +243,102 @@ describe('markdownHtmlEscape', () => {
     });
   });
 
+  describe('asCode', () => {
+    const code = (source: string, env: Record<string, unknown> = {}) => render(source, { asCode: true }, env);
+
+    it('is off by default', () => {
+      expect(render('Returns Array<string>.')).not.toContain('<code>');
+    });
+
+    it('shows a generic as code, with the word it belongs to', () => {
+      expect(code('Returns Array<string> or Promise<T>.')).toBe(
+        '<p>Returns <code>Array&lt;string&gt;</code> or <code>Promise&lt;T&gt;</code>.</p>\n',
+      );
+    });
+
+    it('joins constructs written without a space into one code span', () => {
+      expect(code('Run it against <host>:<port>, then <your-folder>.')).toBe(
+        '<p>Run it against <code>&lt;host&gt;:&lt;port&gt;</code>, then <code>&lt;your-folder&gt;</code>.</p>\n',
+      );
+    });
+
+    it('leaves wrapping brackets, quotes and sentence punctuation outside', () => {
+      expect(code('Use (Array<T>), "Promise<void>"; or Set<T>!')).toBe(
+        '<p>Use (<code>Array&lt;T&gt;</code>), &quot;<code>Promise&lt;void&gt;</code>&quot;; or <code>Set&lt;T&gt;</code>!</p>\n',
+      );
+    });
+
+    it('keeps brackets that are part of the code', () => {
+      expect(code('Call fn(Array<T>) on Array<string>[] values.')).toBe(
+        '<p>Call <code>fn(Array&lt;T&gt;)</code> on <code>Array&lt;string&gt;[]</code> values.</p>\n',
+      );
+    });
+
+    it('leaves the word before a stray end tag outside', () => {
+      expect(code('Pasted from a template</div> by mistake.')).toBe(
+        '<p>Pasted from a template<code>&lt;/div&gt;</code> by mistake.</p>\n',
+      );
+    });
+
+    it('shows processing instructions and CDATA as code', () => {
+      expect(code('Paste <?php echo $v; ?> here.')).toBe('<p>Paste <code>&lt;?php echo $v; ?&gt;</code> here.</p>\n');
+    });
+
+    it('shows {{ }} in prose as code, but leaves it alone when interpolation is off', () => {
+      expect(code('Template: {{ user.name }}.')).toBe('<p>Template: <code>&#123;&#123; user.name }}</code>.</p>\n');
+      expect(render('{{ x }}', { asCode: true, interpolation: false })).toBe('<p>{{ x }}</p>\n');
+    });
+
+    it('works in links, emphasis, headings and table cells', () => {
+      const html = code('# Map<K>\n\n[see Set<T>](https://x.y) and *a List<T>*\n\n| a |\n| - |\n| Box<T> |\n');
+      expect(html).toContain('<h1><code>Map&lt;K&gt;</code></h1>');
+      expect(html).toContain('<a href="https://x.y">see <code>Set&lt;T&gt;</code></a>');
+      expect(html).toContain('<em>a <code>List&lt;T&gt;</code></em>');
+      expect(html).toContain('<td><code>Box&lt;T&gt;</code></td>');
+    });
+
+    it('shows a placeholder alone on its line as code, and parses the lines after it as Markdown', () => {
+      expect(code('<your-api-key>\n**Keep it secret.**')).toBe(
+        '<p><code>&lt;your-api-key&gt;</code>\n<strong>Keep it secret.</strong></p>\n',
+      );
+    });
+
+    it('shows escaped tags inside raw HTML blocks as code, leaving real markup alone', () => {
+      expect(code('<div class="box">\n  Returns Array<string>, with <strong>real</strong> markup.\n</div>')).toBe(
+        '<div class="box">\n  Returns <code>Array&lt;string></code>, with <strong>real</strong> markup.\n</div>',
+      );
+    });
+
+    it('leaves real HTML, components, void end tags and unclosed comments as they are', () => {
+      expect(code('Press <kbd>K</kbd>, see <Badge text="x" />, a</br>b.')).toBe(
+        '<p>Press <kbd>K</kbd>, see <Badge text="x" />, a<br>b.</p>\n',
+      );
+      expect(code('<!-- TODO\n\nStill here.')).toBe('<p>&lt;!-- TODO</p>\n<p>Still here.</p>\n');
+    });
+
+    it('is turned on or off per page', () => {
+      expect(render('Array<T>', {}, { frontmatter: { htmlEscape: { asCode: true } } })).toBe(
+        '<p><code>Array&lt;T&gt;</code></p>\n',
+      );
+      expect(code('Array<T>', { frontmatter: { htmlEscape: { asCode: false } } })).toBe('<p>Array&lt;T&gt;</p>\n');
+    });
+
+    it('compiles as a Vue template', () => {
+      const source = [
+        'Returns Array<string>, <host>:<port>, fn(Map<K>) and </div>.',
+        '',
+        '<your-api-key>',
+        'Then {{ value }} and <?php x ?>.',
+        '',
+        '<div>',
+        'In a block: Set<T>:<U>',
+        '</div>',
+      ].join('\n');
+      expect(vueErrors(code(source))).toEqual([]);
+      expect(vueErrors(render(source, { asCode: true, hints: true }))).toEqual([]);
+    });
+  });
+
   describe('frontmatter', () => {
     it('turns everything off with htmlEscape: false', () => {
       expect(render('Array<T> {{ x }}', {}, { frontmatter: { htmlEscape: false } })).toBe('<p>Array<T> {{ x }}</p>\n');

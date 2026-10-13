@@ -8,6 +8,7 @@ export interface ResolvedSettings {
   tags: Required<TagRules>;
   interpolation: Required<InterpolationRules>;
   hints: boolean;
+  asCode: boolean;
 }
 
 /**
@@ -25,6 +26,7 @@ export function resolveSettings(frontmatter: unknown, options: HtmlEscapeOptions
       tags: resolveRules(TAG_RULES, false),
       interpolation: resolveRules(INTERPOLATION_RULES, false),
       hints: false,
+      asCode: false,
     };
   }
 
@@ -33,6 +35,7 @@ export function resolveSettings(frontmatter: unknown, options: HtmlEscapeOptions
     tags: resolveRules(TAG_RULES, options.tags, page.tags),
     interpolation: resolveRules(INTERPOLATION_RULES, options.interpolation, page.interpolation),
     hints: toBoolean(page.hints) ?? options.hints ?? false,
+    asCode: toBoolean(page.asCode) ?? options.asCode ?? false,
   };
 }
 

@@ -15,7 +15,7 @@ const NO_TAGS = {
   xmlSyntax: false,
   voidEndTags: false,
 };
-const DEFAULTS = { tags: ALL_TAGS, interpolation: { prose: true, code: true }, hints: false };
+const DEFAULTS = { tags: ALL_TAGS, interpolation: { prose: true, code: true }, hints: false, asCode: false };
 
 describe('resolveSettings', () => {
   it('turns every rule on and hints off by default', () => {
@@ -66,16 +66,24 @@ describe('resolveSettings', () => {
   });
 
   it('turns everything off with htmlEscape: false', () => {
-    expect(resolveSettings({ htmlEscape: false }, { hints: true })).toEqual({
+    expect(resolveSettings({ htmlEscape: false }, { hints: true, asCode: true })).toEqual({
       tags: NO_TAGS,
       interpolation: { prose: false, code: false },
       hints: false,
+      asCode: false,
     });
   });
 
   it('turns hints on or off per page', () => {
     expect(resolveSettings({ htmlEscape: { hints: true } }).hints).toBe(true);
     expect(resolveSettings({ htmlEscape: { hints: false } }, { hints: true }).hints).toBe(false);
+  });
+
+  it('turns asCode on or off in the options and per page', () => {
+    expect(resolveSettings({}, { asCode: true }).asCode).toBe(true);
+    expect(resolveSettings({ htmlEscape: { asCode: true } }).asCode).toBe(true);
+    expect(resolveSettings({ htmlEscape: { asCode: false } }, { asCode: true }).asCode).toBe(false);
+    expect(resolveSettings({ htmlEscape: { asCode: 'yes' } }).asCode).toBe(false);
   });
 
   it('ignores values that are not booleans, and unknown rules', () => {

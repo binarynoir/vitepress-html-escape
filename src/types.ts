@@ -50,6 +50,16 @@ export interface HtmlEscapeOptions {
    * them and show the explanation on hover, click or tap. Default: `false`.
    */
   hints?: boolean;
+  /**
+   * Show what the plugin escapes as inline code, as if it had been written in
+   * backticks, instead of as plain text. The code covers the whole word the
+   * construct is part of, so `returns Array<string>.` shows `Array<string>`
+   * as code and leaves the period outside, and `<host>:<port>` becomes one
+   * code span. Applies to unbalanced tags, stray `<?…?>` and CDATA, and, when
+   * interpolation escaping is on, `{{ }}` in prose. Unclosed comments and void
+   * end tags are left as they are. Default: `false`.
+   */
+  asCode?: boolean;
 }
 
 /**
