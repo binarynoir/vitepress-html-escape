@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-13
+
 ### Fixed
 
 - `{{ }}` in inline code and indented code blocks is escaped too. VitePress protects only fenced code, so Vue evaluated these, and `` `{{ value }}` `` rendered as empty code
