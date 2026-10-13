@@ -1,0 +1,7 @@
+node_modules
+dist
+coverage
+*.log
+.DS_Store
+test/fixtures/site/.vitepress/cache
+test/fixtures/site/.vitepress/dist
