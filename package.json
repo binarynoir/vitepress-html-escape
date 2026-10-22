@@ -1,6 +1,6 @@
 {
   "name": "@binarynoir/vitepress-html-escape",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "Stop stray angle brackets and {{ }} in VitePress 2 Markdown from breaking the build: unbalanced tags like Array<string> render as text, real HTML and components are left alone.",
   "keywords": [
     "vitepress",
