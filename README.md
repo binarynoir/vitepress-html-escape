@@ -462,6 +462,8 @@ Bug reports, feature requests and questions are all welcome. Please open them on
 
 Pull requests are welcome too.
 
+<!-- binarynoir:more:start (generated from binarynoir.github.io/products.json) -->
+
 ## More from BinaryNoir
 
 <p align="center">
@@ -473,38 +475,19 @@ Pull requests are welcome too.
   </a>
 </p>
 
-HTML Escape is one of a family of open-source VitePress plugins, editor extensions and command-line tools from BinaryNoir. Browse them all, with documentation and live demos, at **[binarynoir.tech](https://binarynoir.tech)**.
+HTML Escape is one of a family of open-source tools from BinaryNoir.
 
-**VitePress plugins**
+**Pairs well with HTML Escape**
 
-- [Auto Sidebar](https://binarynoir.tech/plugins/auto-sidebar): sidebar built from your folders
-- [Auto Navbar](https://binarynoir.tech/plugins/auto-navbar): navbar built from your folders
-- [Sidebar Accordion](https://binarynoir.tech/plugins/sidebar-accordion): one open sidebar group at a time
-- [Markdown Tags](https://binarynoir.tech/plugins/markdown-tags/): inline status badges
-- [Reading Time Tag](https://binarynoir.tech/plugins/reading-time-tag): reading-time estimates
-- [Glossary Tooltips](https://binarynoir.tech/plugins/glossary/): hover definitions from one glossary file
-- [Downloads](https://binarynoir.tech/plugins/downloads): downloadable files next to your pages
-- [Exclude](https://binarynoir.tech/plugins/exclude/): keep pages out of the build with a `.exclude` file
-- [README Index](https://binarynoir.tech/plugins/readme-index/): `README.md` index pages for VuePress migrations
 - [Broken Links](https://binarynoir.tech/plugins/broken-links): dead links shown as text, not build errors
-
-**Vite plugins**
-
-- [Optimize Images](https://binarynoir.tech/plugins/optimize-images): smaller images in the build output
 - [Image Fallback](https://binarynoir.tech/plugins/image-fallback): a placeholder instead of a failed build
+- [README Index](https://binarynoir.tech/plugins/readme-index/): `README.md` index pages for VuePress migrations
 
-**Editor extensions**
+**New:** [Blog](https://binarynoir.tech/plugins/blog/): posts anywhere, a main blog and section blogs, with RSS feeds
 
-- [Tags for Markdown for VS Code](https://binarynoir.tech/plugins/markdown-tags/vscode): status badges in the VS Code Markdown preview
-- [Tags for Markdown for Obsidian](https://binarynoir.tech/plugins/markdown-tags/obsidian): status badges in Obsidian
+**See them all:** VitePress plugins, Vite plugins, editor extensions and command-line tools, with documentation and live demos, at **[binarynoir.tech](https://binarynoir.tech)**.
 
-**Command-line tools**
-
-- [NoirWatch](https://binarynoir.tech/apps/noirwatch): get notified when a web page changes
-- [NoirCon](https://binarynoir.tech/apps/noircon): get notified when a site, server or port goes down
-- [callrx](https://binarynoir.tech/apps/callrx): amateur radio callsign lookup
-
-Website, docs and demos: **[binarynoir.tech](https://binarynoir.tech)**
+<!-- binarynoir:more:end -->
 
 ## Author
 
