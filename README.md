@@ -12,11 +12,11 @@ compile. Real HTML and Vue components work exactly as before.
 It's built for docs sites with many contributors, where you can't count on
 everyone to remember the backticks.
 
-[Documentation and live demo](https://binarynoir.tech/plugins/html-escape/)
+[Documentation and live demo](https://binarynoir.com/plugins/html-escape/)
 
 [![Support me on Buy Me a Coffee](https://img.shields.io/badge/Support%20me-Buy%20Me%20a%20Coffee-orange?style=for-the-badge&logo=buy-me-a-coffee)](https://buymeacoffee.com/binarynoir)
 [![Support me on Ko-fi](https://img.shields.io/badge/Support%20me-Ko--fi-blue?style=for-the-badge&logo=ko-fi)](https://ko-fi.com/binarynoir)
-[![More tools](https://img.shields.io/badge/Website-binarynoir.tech-8c8c8c?style=for-the-badge)](https://binarynoir.tech)
+[![More tools](https://img.shields.io/badge/Website-binarynoir.com-8c8c8c?style=for-the-badge)](https://binarynoir.com)
 
 ## The problem
 
@@ -467,8 +467,8 @@ Pull requests are welcome too.
 ## More from BinaryNoir
 
 <p align="center">
-  <a href="https://binarynoir.tech">
-    <img alt="BinaryNoir" src="https://binarynoir.tech/logo-horizontal.png" width="320">
+  <a href="https://binarynoir.com">
+    <img alt="BinaryNoir" src="https://binarynoir.com/logo-horizontal.png" width="320">
   </a>
 </p>
 
@@ -476,16 +476,16 @@ HTML Escape is one of a family of open-source tools from BinaryNoir.
 
 **Pairs well with HTML Escape**
 
-- [Broken Links](https://binarynoir.tech/plugins/broken-links): dead links shown as text, not build errors
-- [Image Fallback](https://binarynoir.tech/plugins/image-fallback): a placeholder instead of a failed build
-- [README Index](https://binarynoir.tech/plugins/readme-index/): `README.md` index pages for VuePress migrations
+- [Broken Links](https://binarynoir.com/plugins/broken-links): dead links shown as text, not build errors
+- [Image Fallback](https://binarynoir.com/plugins/image-fallback): a placeholder instead of a failed build
+- [README Index](https://binarynoir.com/plugins/readme-index/): `README.md` index pages for VuePress migrations
 
-**New:** [Blog for Vite](https://binarynoir.tech/plugins/vite-blog): a Markdown blog for a plain Vite site, with search, feeds and a strict CSP
+**New:** [Blog for Vite](https://binarynoir.com/plugins/vite-blog): a Markdown blog for a plain Vite site, with search, feeds and a strict CSP
 
-**See them all:** VitePress plugins, Vite plugins, editor extensions and command-line tools, with documentation and live demos, at **[binarynoir.tech](https://binarynoir.tech)**.
+**See them all:** VitePress plugins, Vite plugins, editor extensions and command-line tools, with documentation and live demos, at **[binarynoir.com](https://binarynoir.com)**.
 
 <!-- binarynoir:more:end -->
 
 ## Author
 
-John Smith III, [BinaryNoir](https://binarynoir.tech). Thanks to all contributors and users for their support and feedback.
+John Smith III, [BinaryNoir](https://binarynoir.com). Thanks to all contributors and users for their support and feedback.
